@@ -10,13 +10,19 @@
     <link href="graphics/lic.png" rel="apple-touch-icon">
     <link rel="stylesheet" href="code.jquery.com/mobile/1.1.0-rc.1/jquery.mobile-1.1.0-rc.1.min.css" />
     <link rel="stylesheet" href="css/calc-min.css" />
+	<link rel="stylesheet" href="css/center.css" />
     
 	<script src="code.jquery.com/jquery-1.7.1.min.js"></script>
     <script src="code.jquery.com/mobile/1.1.0-rc.1/jquery.mobile-1.1.0-rc.1.min.js"></script>
     <script src="js/media.js" type="text/javascript"></script>
     <script src="js/territory-min.js" type="text/javascript"></script>
     <script src="js/licence.js" type="text/javascript"></script>
+	
+
+	
     <script type="text/javascript" language="JavaScript">
+	
+	
 	
 var myCalculatorGrid = {'territory_options':[],'media_options':[],"licence_total":0,'territory_total':0,'media_total':0,'BUR':0, 'TOTAL':0};
 var myBaseUsageRate = 0;
@@ -356,14 +362,19 @@ $( '#foo' ).live( 'pageinit',function(event){
 
 
 </script>
+
 </head> 
 
 <body bgcolor="white">
 
 <!-- Start of first page -->
-<div id="foo" style="background:white;padding: 3.7em 50px;" data-theme="a" data-role="page">
-		<div id="page-head" data-role="header" style="border-bottom-width: 0px;" >
-		<h1 >Licensing Calculator</h1>
+
+ <div class="center-screen">  <!-- Centering div starts here -->
+<div id="foo" class="center-screen" style="background:white;" data-theme="a" data-role="page">
+		<!--<div id="page-head" data-role="header" style="border-bottom-width: 0px;" >  -->
+		
+		<div>
+		<h1 style="margin-left: 25%;height:auto;">Licensing Calculator</h1>
 	</div>
     
     <div  data-role="content">
@@ -484,6 +495,9 @@ $( '#foo' ).live( 'pageinit',function(event){
     
     </div>
 </div>
+
+
+</div> <!-- Centering div ends here -->
 
 <!-- Start of first page -->
 <div id="bar" data-role="page">
