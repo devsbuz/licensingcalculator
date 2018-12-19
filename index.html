@@ -1,0 +1,502 @@
+ <!DOCTYPE html> 
+<html >
+
+<head> 
+	<title>Licensing Calculator</title> 
+	<meta content="width=device-width, initial-scale=1" name="viewport"> 
+	<meta content="yes" name="apple-mobile-web-app-capable">
+    
+	<link rel="shortcut icon" href="graphics/lic.png">
+    <link href="graphics/lic.png" rel="apple-touch-icon">
+    <link rel="stylesheet" href="code.jquery.com/mobile/1.1.0-rc.1/jquery.mobile-1.1.0-rc.1.min.css" />
+    <link rel="stylesheet" href="css/calc-min.css" />
+    
+	<script src="code.jquery.com/jquery-1.7.1.min.js"></script>
+    <script src="code.jquery.com/mobile/1.1.0-rc.1/jquery.mobile-1.1.0-rc.1.min.js"></script>
+    <script src="js/media.js" type="text/javascript"></script>
+    <script src="js/territory-min.js" type="text/javascript"></script>
+    <script src="js/licence.js" type="text/javascript"></script>
+    <script type="text/javascript" language="JavaScript">
+	
+var myCalculatorGrid = {'territory_options':[],'media_options':[],"licence_total":0,'territory_total':0,'media_total':0,'BUR':0, 'TOTAL':0};
+var myBaseUsageRate = 0;
+var myBUR_Help = "The Base Usage Rate (BUR) is a fixed-figure sum set by the photographer or their representative and used to calculate the fees for any additional use of the commissioned work, over and above the original rights granted with payment of the original invoice total. The BUR should be clearly stated on a photographer's original estimate or quotation and is the lynchpin on which the Usage Calculator operates. A single BUR may be set for a whole commission or individually for separate images.";
+var IS_TERRITORY_LIST_BUILT = false;
+
+function clearForm(){
+	$("#set_BUR").val("");
+	$("input[type='radio']").attr("checked",false).checkboxradio("refresh"); 
+	$("input[type='checkbox']").attr("checked",false).checkboxradio("refresh"); 
+		if (myCalculatorGrid.TOTAL > 0){ 
+			myCalculatorGrid = {'territory_options':[],'media_options':[],"licence_total":0,'territory_total':0,'media_total':0,'BUR':0, 'TOTAL':0};
+		}
+}
+
+function calcMe(params){
+ var media_total = 0;
+ var territory_total = 0;	
+	//Set media value
+	for (i in myCalculatorGrid.media_options ){
+		media_total = (media_total + (parseFloat(myArr_MediaValues[myCalculatorGrid.media_options[i]].percentage)/100));
+	}
+
+
+	myCalculatorGrid.media_total = media_total;	
+	
+	//Set territory value
+	for (i in myCalculatorGrid.territory_options ){
+		territory_total = (territory_total + (parseInt(myArr_TerritoryValues[myCalculatorGrid.territory_options[i]].percentage)/100));
+	}
+
+	myCalculatorGrid.territory_total = territory_total;
+	
+	// Set total value
+	myCalculatorGrid.TOTAL = (myCalculatorGrid.licence_total * myCalculatorGrid.territory_total * myCalculatorGrid.media_total) * (myCalculatorGrid.BUR);
+	 $("#label_Usage").html("TOTAL:&nbsp;&pound;" + myCalculatorGrid.TOTAL.toFixed(2) );
+	  
+	  buildLicenceSummary();
+	  buildMediaSummary();
+	  buildTerritorySummary();
+	  buildSummary();
+}
+
+
+function buildSummary(){
+var thisSummary = "", grandTotal, grandTotalCost, original_discount;
+
+grandTotal = (myCalculatorGrid.media_total * myCalculatorGrid.territory_total * myCalculatorGrid.licence_total ) * 100;
+grandTotalCost = ((myBaseUsageRate/100) * grandTotal );
+thisSummary = thisSummary + "<strong>Total = " + (myCalculatorGrid.licence_total * 100) + "% * " + (myCalculatorGrid.media_total * 100)+ "% * " + (myCalculatorGrid.territory_total* 100) + "% = " + grandTotal.toFixed(2) + "% OF B.U.R. (&pound;"+ myCalculatorGrid.BUR +") </strong>";
+thisSummary = thisSummary + "<br><br><strong>Total = " + "&pound;" + myCalculatorGrid.TOTAL.toFixed(2) + "</strong>";
+  $("#calc_summary_total_all").html(thisSummary);
+}
+
+function buildLicenceSummary(){ 
+var thisSummary = "", this_title = "";
+	if (myCalculatorGrid.licence_total !== 0 ){
+		for (title in myArr_LicencePeriod){
+			if (myArr_LicencePeriod[title].amount == (myCalculatorGrid.licence_total*100)){
+			 this_title = myArr_LicencePeriod[title].title + " @ " + (myCalculatorGrid.licence_total * 100) + "%";
+			} 
+		}
+	}else{
+		 this_title =  "NONE SELECTED";
+	}
+ thisSummary = "<table c><tr><th align='left'>1 - Licence period<\/th><\/tr><tr><td>" + this_title + "<\/td></tr><\/table>";
+ $("#calc_summary_licence_all").html(thisSummary);
+}
+
+
+function buildMediaSummary(){
+ var thisSummary = "" ;
+ var composer = "";
+ var cell_summary_str = "#calc_summary_media_all";
+ 
+   thisMediaText = "";
+  	
+	if (myCalculatorGrid.media_options.length > 0) {
+			for (column in myCalculatorGrid.media_options){
+			//myArr_MediaValues[$(this).attr("id").substr(12,2)].percentage/
+			thisSummary =  thisSummary + "<tr><td colspan='3'>" + composer + myArr_MediaValues[myCalculatorGrid.media_options[column]].title + " @ " + myArr_MediaValues[myCalculatorGrid.media_options[column]].percentage + "%<\/td><\/tr>";
+		}
+	}else{
+	thisSummary =  thisSummary + "<tr><td colspan='3'>NONE SELECTED<\/td><\/tr>";
+	}
+	
+	
+	
+	thisSummary = thisMediaText + "<table c><tr><th colspan='3' align='left'>2 - Media options<\/th>" + thisSummary + "<\/tr><tr><td colspan='2' align='left'><strong>Total<\/strong>&nbsp;&nbsp;<strong>"+  (myCalculatorGrid.media_total.toFixed(2) * 100) +"%<\/strong><\/td><\/tr><\/table>";
+  $(cell_summary_str).html(thisSummary);
+}
+
+
+function buildTerritorySummary(){
+ var thisSummary = "" ;
+ var composer = "";
+ var cell_summary_str = "#calc_summary_territory_all";
+ 
+	
+	if (myCalculatorGrid.territory_options.length > 0) {
+		for (column in myCalculatorGrid.territory_options){
+			//myArr_MediaValues[$(this).attr("id").substr(12,2)].percentage/
+			thisSummary =  thisSummary + "<tr><td colspan='3'>" + composer + myArr_TerritoryValues[myCalculatorGrid.territory_options[column]].title + " @ " + myArr_TerritoryValues[myCalculatorGrid.territory_options[column]].percentage + "%<\/td><\/tr>";
+		}
+	}else{
+	thisSummary =  thisSummary + "<tr><td colspan='3'>NONE SELECTED<\/td><\/tr>";
+	}
+	thisSummary = "<table c><tr><th colspan='3' align='left'>3 - Territory options<\/th>" + thisSummary + "<\/tr><tr><td colspan='2' align='left'><strong>Total<\/strong>&nbsp;&nbsp;<strong>"+  (myCalculatorGrid.territory_total.toFixed(2) * 100) +"%<\/strong><\/td><\/tr><\/table>";
+  $(cell_summary_str).html(thisSummary);
+}
+
+function buildList (params) {
+  var strVar="";
+ switch (params.list_type){
+  case "territory_band_A":
+   for (i in myArr_TerritoryValues){
+	  // <input type="checkbox" name="checkbox-tband-A-0"  id="checkbox-tband-A-0" /><label for="checkbox-tband-A-0" >China</label>	
+			if (myArr_TerritoryValues[i].notes =="Territory Band A" || myArr_TerritoryValues[i].notes =="Territory Band A+"){	
+			strVar += "<input type=\"checkbox\" value=\""+ i + "\" name=\"checkbox-territory-L2-" + i + "\" id=\"checkbox-territory-L2-" + i + "\" class=\"custom\" \/>";
+			strVar += "<label data-theme='o' for=\"checkbox-territory-L2-" + i + "\">" + myArr_TerritoryValues[i].title +  " - " +myArr_TerritoryValues[i].percentage + "%<\/label>";
+			}
+		}
+	$("#tband_a").html(strVar);
+   break;
+  case "territory_band_B":
+   for (i in myArr_TerritoryValues){
+	  // <input type="checkbox" name="checkbox-tband-A-0"  id="checkbox-tband-A-0" /><label for="checkbox-tband-A-0" >China</label>	
+			if (myArr_TerritoryValues[i].notes =="Territory Band B"){	
+			strVar += "<input type=\"checkbox\" value=\""+ i + "\" name=\"checkbox-territory-L2-" + i + "\" id=\"checkbox-territory-L2-" + i + "\" class=\"custom\" \/>";
+			strVar += "<label data-theme='p' for=\"checkbox-territory-L2-" + i + "\">" + myArr_TerritoryValues[i].title +  " - " +myArr_TerritoryValues[i].percentage + "%<\/label>";
+			}
+		}
+	$("#tband_b").html(strVar);
+   break;
+   case "territory_band_C":
+	   for (i in myArr_TerritoryValues){
+		  // <input type="checkbox" name="checkbox-tband-A-0"  id="checkbox-tband-A-0" /><label for="checkbox-tband-A-0" >China</label>	
+				if (myArr_TerritoryValues[i].notes =="Territory Band C"){	
+				strVar += "<input type=\"checkbox\" value=\""+ i + "\" name=\"checkbox-territory-L2-" + i + "\" id=\"checkbox-territory-L2-" + i + "\" class=\"custom\" \/>";
+				strVar += "<label data-theme='q' for=\"checkbox-territory-L2-" + i + "\">" + myArr_TerritoryValues[i].title +  " - " +myArr_TerritoryValues[i].percentage + "%<\/label>";
+				}
+			}
+	$("#tband_c").html(strVar);
+   break;
+  case "territory_band_D":
+	   for (i in myArr_TerritoryValues){
+		  // <input type="checkbox" name="checkbox-tband-A-0"  id="checkbox-tband-A-0" /><label for="checkbox-tband-A-0" >China</label>	
+				if (myArr_TerritoryValues[i].notes =="Territory Band D"){	
+				strVar += "<input type=\"checkbox\" value=\""+ i + "\" name=\"checkbox-territory-L2-" + i + "\" id=\"checkbox-territory-L2-" + i + "\" class=\"custom\" \/>";
+				strVar += "<label data-theme='r' for=\"checkbox-territory-L2-" + i + "\">" + myArr_TerritoryValues[i].title +  " - " +myArr_TerritoryValues[i].percentage + "%<\/label>";
+				}
+			}
+	$("#tband_d").html(strVar);
+   break;
+  case "territory_grp_1":
+        for (i in myArr_TerritoryValues){	
+			if (myArr_TerritoryValues[i].group ==1){	
+			strVar += "<li>";
+			strVar += "<a>";
+			strVar += "<input type=\"checkbox\" value=\""+ i + "\" name=\"checkbox-territory-L1-" + i + "\" id=\"checkbox-territory-L1-" + i + "\" class=\"custom\" \/>";
+			strVar += "<label data-theme='m' for=\"checkbox-territory-L1-" + i + "\">" + myArr_TerritoryValues[i].title +  " - " +myArr_TerritoryValues[i].percentage + "%<\/label><\/a><a class=\"helpDialogLink\" data-icon=\"info\" help-id=\"t-" + i + "\" href=\"#bar\" data-rel=\"dialog\" data-transition=\"slide\" title=\"Help\" >";
+			strVar += "<\/a>";
+			strVar += "<\/li>";	
+			}
+		}
+$("#territory_grp1_ul").html(strVar);
+$("#territory_grp1_ul").listview('refresh');
+   break;
+   case "territory_grp_2":
+        for (i in myArr_TerritoryValues){	
+			if (myArr_TerritoryValues[i].group ==2){	
+			strVar += "<li>";
+			strVar += "<a>";
+			strVar += "<input type=\"checkbox\" value=\""+ i + "\" name=\"checkbox-territory-L2-" + i + "\" id=\"checkbox-territory-L2-" + i + "\" class=\"custom\" \/>";
+			strVar += "<label data-theme='n' for=\"checkbox-territory-L2-" + i + "\">" + myArr_TerritoryValues[i].title +  " - " +myArr_TerritoryValues[i].percentage + "%<\/label><\/a><a class=\"helpDialogLink\" data-icon=\"info\" help-id=\"t-" + i + "\" href=\"#bar\" data-rel=\"dialog\" data-transition=\"slide\" title=\"Help\" >";
+			strVar += "<\/a>";
+			strVar += "<\/li>";	
+			}
+		}
+$("#territory_grp2_ul").html(strVar);
+$("#territory_grp2_ul").listview('refresh');
+   break;
+ 
+  case "media_print" :
+      for (i in myArr_MediaValues){
+		 if (myArr_MediaValues[i].title.indexOf("Digital") ==-1 ){
+				 if (myArr_MediaValues[i].title.indexOf("xPackaging") == -1 && myArr_MediaValues[i].title.indexOf("All media") ==-1 && myArr_MediaValues[i].title.indexOf("xAll Print media") ==-1  ){			
+						strVar += "<li data-theme='c'>";
+						strVar += "<a>";
+						strVar += "<input value=\""+ i +"\" type=\"checkbox\" name=\"checkbox-media-l2-" + i + "\" id=\"checkbox-media-l2-" + i + "\" class=\"custom\" \/>";
+						strVar += "<label data-theme='j' for=\"checkbox-media-l2-" + i + "\">" + myArr_MediaValues[i].title + " - " + myArr_MediaValues[i].percentage + "%<\/label><\/a><a class=\"helpDialogLink\" data-icon=\"info\" help-id=\"" + i + "\" href=\"#bar\" data-rel=\"dialog\" data-transition=\"slide\" title=\"Help\" >";
+						strVar += "<\/a>";
+						strVar += "<\/li>";	
+				 }
+			 }
+		}
+$("#media_print_ul").html(strVar);
+$("#media_print_ul").listview('refresh');
+   break;
+  case "media_digital" :
+    for (i in myArr_MediaValues){
+     if (myArr_MediaValues[i].title.indexOf("Print") ==-1){
+			 if (myArr_MediaValues[i].title.indexOf("Packaging") == -1 && myArr_MediaValues[i].title.indexOf("All media") ==-1  && myArr_MediaValues[i].title.indexOf("xAll Digital media") ==-1 ){			
+					strVar += "<li data-theme='c'>";
+					strVar += "<a>";
+					strVar += "<input value=\""+ i +"\" type=\"checkbox\" name=\"checkbox-media-l2-" + i + "\" id=\"checkbox-media-l2-" + i + "\" class=\"custom\" \/>";
+					strVar += "<label data-theme='k' for=\"checkbox-media-l2-" + i + "\">" + myArr_MediaValues[i].title + " - " + myArr_MediaValues[i].percentage + "%<\/label><\/a><a class=\"helpDialogLink\" data-icon=\"info\" help-id=\"" + i + "\" href=\"#bar\" data-rel=\"dialog\" data-transition=\"slide\" title=\"Help\" >";
+					strVar += "<\/a>";
+					strVar += "<\/li>";	
+			 }
+		 }
+	}
+$("#media_digital_ul").html(strVar);
+$("#media_digital_ul").listview('refresh');
+   break;
+  }
+$("#foo").trigger('create');
+}
+
+
+//Apply function to set_Rate button
+/*
+$("#set_Rate").live('click',function () { 
+	  if (confirm("Setting / resetting your BUR rate will re-calculate any current figures")){
+	   myBaseUsageRate = "&pound;" + $("#set_BUR").val();
+	   myCalculatorGrid.BUR = $("#set_BUR").val();
+	   calcMe();
+	  }
+	});
+*/
+
+//Apply function to set_Rate button
+$("#set_BUR").live('change',function () { 
+	  myBaseUsageRate = "&pound;" + $("#set_BUR").val();
+	  myCalculatorGrid.BUR = $("#set_BUR").val();
+	  calcMe();
+});
+	
+$("a.helpDialogLink").live('click',function () { 
+	if ($(this).attr("help-id").indexOf("BUR") !==-1){
+		$("#dialogText").html(myBUR_Help);
+	}else{
+		if ($(this).attr("help-id").indexOf("t-")=="0"){
+			$("#dialogText").html(myArr_TerritoryValues[$(this).attr("help-id").substr(2,2)].notes) ;
+			}else{
+			$("#dialogText").html(myArr_MediaValues[$(this).attr("help-id")].notes) ;
+			}
+	}
+});
+
+$('input[name="licence-period"]').live('change',function () { 
+	myCalculatorGrid.licence_total = (myArr_LicencePeriod[$(this).attr("id")].amount/100);
+	calcMe();
+});
+
+$('input[name^="radio-media"]').live('change',function () { 
+	//myCalculatorGrid.media_total = (myArr_MediaValues[$(this).attr("id").substr(12,2)].percentage/100);
+		for (i in myCalculatorGrid.media_options ){
+			if (myCalculatorGrid.media_options[i] == 0 || myCalculatorGrid.media_options[i] == 1 || myCalculatorGrid.media_options[i] == 13 ){
+				myCalculatorGrid.media_options.splice(i,1);
+			}
+		}	
+	myCalculatorGrid.media_options.push($(this).val());
+	calcMe();
+});
+
+
+$('input[name^="checkbox-media"]').live('change',function () { 
+
+	if (this.checked){
+		 //myCalculatorGrid.media_options.push(myArr_MediaValues[$(this).attr("id").substr(18,2)].percentage);
+		 myCalculatorGrid.media_options.push($(this).val());
+	} else {
+		for (i in myCalculatorGrid.media_options ){
+			if (myCalculatorGrid.media_options[i] == $(this).val()){
+				myCalculatorGrid.media_options.splice(i,1);
+			}
+		}
+	}
+
+	calcMe();
+});
+
+
+$('input[name^="checkbox-territory"]').live('change',function () { 
+	if (this.checked){
+		 myCalculatorGrid.territory_options.push($(this).val());
+	} else {
+		for (i in myCalculatorGrid.territory_options ){
+			if (myCalculatorGrid.territory_options[i] == $(this).val()){
+				myCalculatorGrid.territory_options.splice(i,1);
+			}
+		}
+	}
+	calcMe();
+});
+
+
+$('#reset').live('click',function () { 
+	clearForm();
+});
+
+
+$('#territory-collapsible').live('click',function () { 
+	if (!IS_TERRITORY_LIST_BUILT){
+	 buildList({"list_type":"territory_grp_1"});
+	 buildList({"list_type":"territory_grp_2"});
+	 //alert("built");
+	}
+	IS_TERRITORY_LIST_BUILT = true;
+});
+
+$('.territory-band-head').live('click',function () { 
+ 	var str = "territory_band_" + $(this).attr("band");
+	var str_child = "#tband_" + $(this).attr("band");
+		if ( !$(str_child.toLowerCase()).children().length ) {
+			buildList({"list_type":str});
+			//$("input[type='radio']").checkboxradio("refresh");
+			//$("#foo").trigger('create');
+		}
+	
+});
+
+
+$( '#foo' ).live( 'pageinit',function(event){
+	buildList({"list_type":"media_print"});
+	buildList({"list_type":"media_digital"});
+/*	buildList({"list_type":"territory_grp_1"});
+	buildList({"list_type":"territory_grp_2"});
+	buildList({"list_type":"territory_band_A"});
+	buildList({"list_type":"territory_band_B"});
+	buildList({"list_type":"territory_band_C"});
+	buildList({"list_type":"territory_band_D"});*/
+	clearForm();
+	calcMe();
+});
+
+
+</script>
+</head> 
+
+<body bgcolor="white">
+
+<!-- Start of first page -->
+<div id="foo" style="background:white;padding: 3.7em 50px;" data-theme="a" data-role="page">
+		<div id="page-head" data-role="header" style="border-bottom-width: 0px;" >
+		<h1 >Licensing Calculator</h1>
+	</div>
+    
+    <div  data-role="content">
+        <div  class="ui-bar ui-grid-b ui-bar-a ui-corner-all set-BUR" id="setBUR">
+                    <div  class="ui-block-a"><label  for="set_BUR"><strong>1 - Set the Base Usage Rate</strong></label></div><br>
+                    <div  class="ui-block-b"><input type="number" placeholder="0" data-inline="true" maxlength="10" size="10"  name="set_BUR" id="set_BUR" data-theme="c"></div>
+                    <div align="right" class="ui-block-c">
+                     <a data-iconpos="right" title="Help" data-transition="slide" data-icon="info" help-id="BUR" href="#bar" data-rel="dialog" class="helpDialogLink">
+                            <span class="ui-btn ui-btn-up-b ui-btn-icon-notext ui-btn-corner-all ui-shadow" data-theme="b" title="">
+                                <span aria-hidden="true" class="ui-btn-inner ui-btn-corner-all ui-corner-tr">
+                                    <span class="ui-btn-text ui-corner-tr"></span>
+                                    <span class="ui-icon ui-icon-info ui-icon-shadow"></span>
+                                </span>
+                            </span>
+                     </a> 
+                    </div> 
+            </div>
+            
+            <div data-role="collapsible" data-theme="e" data-content-theme="e">
+                <h3 id="Usage_title" class="ui-grid-a" >
+                    <div class="ui-block-a">View Results</div>
+                    <div class="ui-block-b"><span id="label_Usage" >&pound;</span></div>
+               </h3>
+                 The following re-usage options have been selected
+                 <p id="calc_summary_licence_all" ></p>
+                 <p id="calc_summary_media_all" ></p>
+                 <p id="calc_summary_territory_all"></p>
+                 <p id="calc_summary_total_all"></p>
+            </div>
+            
+            <div data-content-theme="g" data-theme="g" class="licence-period-collapsible" data-role="collapsible">
+            <h3>2 - SET PERIOD</h3>
+            <p>
+<input type="radio" value="0" id="licence-period-01" class="custom" name="licence-period">
+<label for="licence-period-01">1 year</label> 
+<input type="radio" value="2" class="custom" id="licence-period-02" name="licence-period">
+<label for="licence-period-02">2 year</label>
+<input type="radio" value="3" class="custom" id="licence-period-03" name="licence-period">
+<label for="licence-period-03">3 year</label>
+<input type="radio" value="4" class="custom" id="licence-period-04" name="licence-period">
+<label for="licence-period-04">4 year</label> 
+<input type="radio" value="5" class="custom" id="licence-period-05" name="licence-period">
+<label for="licence-period-05">5 year</label>
+<input type="radio" value="6" class="custom" id="licence-period-06" name="licence-period">
+<label for="licence-period-06">6 year</label>
+<input type="radio" value="7" class="custom" id="licence-period-07" name="licence-period">
+<label for="licence-period-07">7 year</label> 
+<input type="radio" value="8" class="custom" id="licence-period-08" name="licence-period">
+<label for="licence-period-08">8 year</label>
+<input type="radio" value="9" class="custom" id="licence-period-09" name="licence-period">
+<label for="licence-period-09">9 year</label>
+<input type="radio" value="10" class="custom" id="licence-period-10" name="licence-period">
+<label for="licence-period-10">10 year</label> 
+</p>
+            </div>
+            
+           <div   data-role="collapsible" data-theme="j" data-content-theme="j">
+            <h3 class="media-collapsible">3 - SET MEDIA</h3>     
+                	<div  data-role="collapsible" data-theme='j' >
+                     <h3 >Select Print media usages</h3>
+                       <ul data-split-icon="info" id="media_print_ul" data-role="listview" data-inset="true" data-filter="false"></ul>
+                   </div>
+
+                    <div data-role="collapsible" data-theme='k'>
+                     <h3 >Select Digital media usages</h3>
+                     <ul id="media_digital_ul" data-split-icon="info" data-role="listview" data-inset="true" data-filter="false"></ul>
+                    </div>
+                    <ul  data-split-icon="info" data-role="listview" data-inset="true" data-filter="false" >
+                        <li data-theme="c" >
+                            <a>
+                            <input  name="checkbox-media-0" type="checkbox" class="custom" id="checkbox-media-0" value="0" >
+                            <label  for="checkbox-media-0" class="media-collapsible" data-theme="j">All media @ 300% </label> 
+                            </a>
+                            <a class="helpDialogLink" help-id="0"  href="#bar" data-rel="dialog" data-transition="slide" title="Help" ></a>
+                        </li>
+				     </ul>
+            </div>
+            
+              
+              
+              
+              <div id="territory-collapsible" data-role="collapsible" data-theme="m" data-content-theme="c">
+           		 <h3>4 - SET TERRITORY</h3>
+              <ul id="territory_grp1_ul" data-split-icon="info" data-role="listview" data-inset="true" data-filter="false">  </ul>
+              
+                  <div data-role="collapsible" data-theme="n" >
+                   <h3>Country Groupings</h3>
+                    	<ul id="territory_grp2_ul" data-split-icon="info" data-role="listview" data-inset="true" data-filter="false">  </ul>
+                  </div>
+ 
+                  <div  id="territory-band-head" band="A" class="territory-band-head" data-role="collapsible" data-theme="o">
+                   <h3>Countries in Band A @ 100%</h3>
+                   <div id="tband_a" ></div>
+                  </div>
+                                        
+                  <div  band="B" class="territory-band-head" data-role="collapsible" data-theme="p">
+                      <h3>Countries in Band B @ 80%</h3>
+                      <div id="tband_b" ></div>
+                  </div>
+                           
+             
+              <div  band="C" class="territory-band-head" data-role="collapsible" data-theme="q">        
+                      <h3>Countries in Band C @ 60%</h3>
+                      <div id="tband_c"></div>
+               </div>
+              
+             
+              	<div  band="D" class="territory-band-head" data-role="collapsible" data-theme="r">
+                      <h3>Countries in Band D @ 40%</h3>
+                      <div id="tband_d"> </div>
+                </div>
+   
+            </div> 
+              
+                  
+  
+         
+    
+    </div>
+</div>
+
+<!-- Start of first page -->
+<div id="bar" data-role="page">
+	<div data-role="header">
+		<h1>Licensing Calculator</h1>
+	</div><!-- /header -->
+    <div data-role="content">
+    	<div id="dialogText"></div>
+        <a data-theme="b" data-rel="back" data-role="button">Close</a> 
+    </div>
+</div>
+
+
+</body>
+
+</html>
